@@ -1,0 +1,50 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 38,
+    "margin-top": 6,
+    "margin-left": 8,
+    "margin-right": 8,
+    "spacing": 8,
+    "modules-left": ["sway/workspaces", "sway/mode"],
+    "modules-center": ["clock"],
+    "modules-right": ["custom/aether", "pulseaudio", "network", "battery", "tray"],
+
+    "sway/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": true,
+        "format": "{name}"
+    },
+    "sway/mode": {
+        "format": "{}"
+    },
+    "clock": {
+        "format": "{:%a %d %b   %H:%M}",
+        "tooltip-format": "{:%A, %d %B %Y}"
+    },
+    "custom/aether": {
+        "format": "✦ Aether",
+        "tooltip": false,
+        "on-click": "aether-assistant"
+    },
+    "pulseaudio": {
+        "format": "Vol {volume}%",
+        "format-muted": "Muted",
+        "on-click": "pavucontrol",
+        "scroll-step": 5
+    },
+    "network": {
+        "format-wifi": "{essid}",
+        "format-ethernet": "Online",
+        "format-disconnected": "Offline",
+        "tooltip-format": "{ifname}  {ipaddr}"
+    },
+    "battery": {
+        "format": "{capacity}%",
+        "format-charging": "{capacity}% ⚡",
+        "states": {"warning": 25, "critical": 10}
+    },
+    "tray": {
+        "spacing": 10
+    }
+}

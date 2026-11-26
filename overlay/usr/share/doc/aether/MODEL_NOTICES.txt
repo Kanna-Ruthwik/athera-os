@@ -1,0 +1,36 @@
+AetherOS bundled model and speech notices
+
+Offline speech recognition
+  Model: vosk-model-small-en-us-0.15
+  Source: https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip
+  License: Apache License 2.0
+  SHA-256 of source archive:
+  30f26242c4eb449f948e42cb302dd7a686cb29a3423a8367f99ff41780942498
+
+Semantic search embeddings
+  Model: BAAI/bge-small-en-v1.5 (384-dimensional English text embeddings)
+  Source: https://huggingface.co/BAAI/bge-small-en-v1.5
+  License: MIT
+  The ONNX model is installed by FastEmbed from its supported-model registry.
+
+Local language model
+  Model: Qwen2.5-1.5B-Instruct, GGUF Q4_K_M quantisation
+  Source: https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF
+  License: Apache License 2.0 (Alibaba Cloud / Qwen team)
+  The build verifies the download against the checksum Hugging Face reports.
+  Replace it by pointing /usr/share/aether/models/llm/model.gguf at any other
+  GGUF model you are licensed to use.
+
+Inference engine
+  llama.cpp (tag b12723, commit abca6920035ed77c1d80eaf23d066e9d3a7c5b23)
+  Source: https://github.com/ggml-org/llama.cpp
+  License: MIT (text installed as /usr/share/aether/licenses/llama.cpp-LICENSE)
+
+Offline speech synthesis
+  Engine: eSpeak NG; no separately downloaded voice model is used.
+  The engine and voice data are provided by Debian packages. See their
+  copyright and license files under /usr/share/doc/espeak-ng/.
+
+License texts for the bundled Vosk and BGE model assets are under
+/usr/share/aether/licenses/. Model licenses and training-data rights can
+have different terms; review the linked model cards before redistribution.

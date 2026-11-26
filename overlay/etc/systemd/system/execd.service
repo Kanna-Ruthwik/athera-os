@@ -1,0 +1,54 @@
+[Unit]
+Description=AetherOS capability-scoped sandbox execution broker
+Requires=aether-keygen.service
+After=local-fs.target systemd-tmpfiles-setup.service aether-keygen.service
+Before=graphical.target
+
+[Service]
+Type=simple
+User=aether-exec
+Group=aether-clients
+UMask=0077
+StateDirectory=execd
+StateDirectoryMode=0750
+LoadCredential=execd.key:/var/lib/aether/execd.key
+ExecStart=/usr/bin/python3 /usr/libexec/aether/execd.py.txt
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=10s
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=yes
+RestrictRealtime=yes
+RestrictNamespaces=~cgroup time
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @module @obsolete @raw-io @reboot @swap
+SystemCallErrorNumber=EPERM
+PrivateMounts=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX
+MemoryHigh=256M
+MemoryMax=512M
+CPUWeight=50
+TasksMax=24
+LimitNOFILE=256
+ReadWritePaths=/run/ai
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Open (or focus) the Aether assistant window. Bound to Super+Space.
+export GTK_A11Y=none
+exec /usr/bin/python3 -I /usr/libexec/aether/assistant_ui.py.txt "$@"

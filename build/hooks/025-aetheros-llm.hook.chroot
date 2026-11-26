@@ -1,0 +1,118 @@
+#!/bin/bash
+# Local language model: build llama.cpp (portable CPU backends) and fetch a small
+# open model. Both parts are "soft": on failure the ISO still builds, the problem
+# is written to /usr/share/aether/build-report.txt and `aetherctl ask` reports
+# that no model backend is available.
+set -uo pipefail
+
+REPORT=/usr/share/aether/build-report.txt
+export DEBIAN_FRONTEND=noninteractive
+
+LLAMA_REPO=https://github.com/ggml-org/llama.cpp
+LLAMA_TAG=b12723
+LLAMA_COMMIT=abca6920035ed77c1d80eaf23d066e9d3a7c5b23
+INSTALL_DIR=/opt/aether/llama
+
+MODEL_URL=https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+MODEL_FILE=qwen2.5-1.5b-instruct-q4_k_m.gguf
+MODEL_DIR=/usr/share/aether/models/llm
+MODEL_MIN_BYTES=900000000
+
+log() { echo "$*" >> "$REPORT"; }
+
+build_llama() (
+    set -Eeuo pipefail
+    apt-get update
+    apt-get install -y --no-install-recommends git cmake g++ make ca-certificates libstdc++6 libgomp1
+    apt-mark manual libstdc++6 libgomp1
+
+    work="$(mktemp -d /var/tmp/llama-build.XXXXXX)"
+    trap 'rm -rf -- "$work"' EXIT
+    git clone --depth 1 --branch "$LLAMA_TAG" "$LLAMA_REPO" "$work/src"
+    if [ "$(git -C "$work/src" rev-parse HEAD)" != "$LLAMA_COMMIT" ]; then
+        echo "llama.cpp $LLAMA_TAG does not match pinned commit $LLAMA_COMMIT" >&2
+        exit 1
+    fi
+
+    install -D -m 0644 "$work/src/LICENSE" /usr/share/aether/licenses/llama.cpp-LICENSE
+
+    # Baseline x86-64 plus runtime-selected CPU variants, so the image also runs on
+    # VMs that hide AVX/AVX2 (a "native" build would crash with illegal instruction).
+    cmake -S "$work/src" -B "$work/build" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DBUILD_SHARED_LIBS=ON \
+        -DGGML_BACKEND_DL=ON \
+        -DGGML_CPU_ALL_VARIANTS=ON \
+        -DGGML_NATIVE=OFF \
+        -DLLAMA_OPENSSL=OFF \
+        -DLLAMA_BUILD_TESTS=OFF \
+        -DLLAMA_BUILD_EXAMPLES=OFF \
+        -DLLAMA_BUILD_TOOLS=ON \
+        -DLLAMA_BUILD_SERVER=ON \
+        -DLLAMA_BUILD_UI=OFF \
+        -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
+        -DCMAKE_INSTALL_RPATH='$ORIGIN'
+
+    variants="$(cmake --build "$work/build" --target help | awk '$2 ~ /^ggml-cpu-/ && $2 !~ /-feats$/ {print $2}' | tr '\n' ' ')"
+    jobs="$(nproc)"
+    if [ "$jobs" -gt 4 ]; then jobs=4; fi
+    # shellcheck disable=SC2086
+    cmake --build "$work/build" -j "$jobs" --target llama-server $variants
+
+    install -d -m 0755 "$INSTALL_DIR"
+    cp -a "$work"/build/bin/llama-server "$work"/build/bin/*.so* "$INSTALL_DIR/"
+    chmod 0755 "$INSTALL_DIR/llama-server"
+    "$INSTALL_DIR/llama-server" --version
+
+    apt-get purge -y git cmake g++ make
+    apt-get autoremove -y --purge
+    apt-get clean
+
+    # The binary must still start (and find its libraries) after the toolchain is gone.
+    if ldd "$INSTALL_DIR/llama-server" | grep -q "not found"; then
+        ldd "$INSTALL_DIR/llama-server" >&2
+        echo "llama-server is missing shared libraries after cleanup" >&2
+        exit 1
+    fi
+    "$INSTALL_DIR/llama-server" --version
+)
+
+fetch_model() (
+    set -Eeuo pipefail
+    install -d -m 0755 "$MODEL_DIR"
+    expected="$(curl -fsIL "$MODEL_URL" | tr -d '\r' | awk 'tolower($1)=="x-linked-etag:" {gsub(/"/, "", $2); v=$2} END {print v}')"
+    curl -fL --retry 3 --retry-delay 5 -o "$MODEL_DIR/$MODEL_FILE.part" "$MODEL_URL"
+    [ "$(head -c 4 "$MODEL_DIR/$MODEL_FILE.part")" = "GGUF" ]
+    [ "$(stat -c %s "$MODEL_DIR/$MODEL_FILE.part")" -ge "$MODEL_MIN_BYTES" ]
+    actual="$(sha256sum "$MODEL_DIR/$MODEL_FILE.part" | cut -d' ' -f1)"
+    if [ -n "$expected" ]; then
+        [ "$expected" = "$actual" ]
+        echo "model checksum verified: $actual" >> "$REPORT"
+    else
+        echo "UNVERIFIED model checksum (server sent none); sha256=$actual" >> "$REPORT"
+    fi
+    mv "$MODEL_DIR/$MODEL_FILE.part" "$MODEL_DIR/$MODEL_FILE"
+    ln -sfn "$MODEL_FILE" "$MODEL_DIR/model.gguf"
+)
+
+echo >> "$REPORT"
+if build_llama; then
+    log "OK       llm-backend: llama.cpp $LLAMA_TAG ($LLAMA_COMMIT)"
+else
+    log "MISSING  llm-backend: llama.cpp build failed (see the build log)"
+fi
+
+if fetch_model; then
+    log "OK       llm-model: $MODEL_FILE"
+else
+    rm -f "$MODEL_DIR/$MODEL_FILE.part"
+    log "MISSING  llm-model: $MODEL_FILE download or verification failed"
+fi
+
+if [ -x "$INSTALL_DIR/llama-server" ] && [ -e "$MODEL_DIR/model.gguf" ]; then
+    systemctl enable aether-llm.service
+    log "OK       llm-service: aether-llm.service enabled"
+else
+    log "SKIPPED  llm-service: needs both the backend and the model"
+fi
+exit 0

@@ -1,0 +1,52 @@
+[Unit]
+Description=AetherOS local inference multiplexer
+After=local-fs.target systemd-tmpfiles-setup.service
+Before=graphical.target
+
+[Service]
+Type=simple
+User=aether-ai
+Group=aether-clients
+UMask=0077
+ExecStart=/usr/bin/python3 /usr/libexec/aether/aid.py.txt
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=10s
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=yes
+RestrictRealtime=yes
+RestrictNamespaces=~user cgroup ipc mnt net pid time uts
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @resources @swap
+SystemCallErrorNumber=EPERM
+PrivateMounts=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1/32
+IPAddressAllow=::1/128
+MemoryHigh=2G
+MemoryMax=3G
+CPUWeight=80
+IOWeight=80
+TasksMax=32
+LimitNOFILE=256
+ReadWritePaths=/run/ai
+
+[Install]
+WantedBy=multi-user.target

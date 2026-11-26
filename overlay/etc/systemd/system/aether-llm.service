@@ -1,0 +1,53 @@
+[Unit]
+Description=AetherOS local language model (llama.cpp, loopback only)
+After=local-fs.target
+Before=aid.service
+ConditionPathExists=/opt/aether/llama/llama-server
+ConditionPathExists=/usr/share/aether/models/llm/model.gguf
+
+[Service]
+Type=simple
+User=aether-llm
+Group=aether-llm
+UMask=0077
+EnvironmentFile=-/etc/aether/llm.conf
+ExecStart=/opt/aether/llama/llama-server --host 127.0.0.1 --port 8080 --model /usr/share/aether/models/llm/model.gguf --ctx-size ${AETHER_LLM_CTX} --no-webui $AETHER_LLM_EXTRA
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=180s
+Nice=10
+OOMScoreAdjust=500
+CPUWeight=50
+IOWeight=50
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1/32
+IPAddressAllow=::1/128
+ReadOnlyPaths=/usr/share/aether/models /opt/aether/llama
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target

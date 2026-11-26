@@ -1,0 +1,35 @@
+[Unit]
+Description=AetherOS one-time per-machine execution-key bootstrap
+Before=execd.service
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+StateDirectory=aether
+StateDirectoryMode=0700
+ExecStart=/usr/bin/python3 /usr/libexec/aether/execd.py.txt --ensure-key
+RemainAfterExit=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @resources @swap
+SystemCallErrorNumber=EPERM
+RestrictAddressFamilies=AF_UNIX
+TasksMax=4
+LimitNOFILE=64

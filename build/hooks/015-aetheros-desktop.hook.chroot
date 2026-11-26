@@ -1,0 +1,63 @@
+#!/bin/bash
+# Install the desktop applications. Every group is "soft": if a package name is
+# wrong or unavailable the build continues and the problem is recorded in
+# /usr/share/aether/build-report.txt (readable on the running system with
+# `aetherctl doctor`). Only the core list in build-iso.sh is allowed to fail the build.
+set -uo pipefail
+
+REPORT=/usr/share/aether/build-report.txt
+export DEBIAN_FRONTEND=noninteractive
+# Never stop at a dpkg configuration-file question.
+mkdir -p /etc/apt/apt.conf.d
+printf 'Dpkg::Options { "--force-confdef"; "--force-confold"; };\n' > /etc/apt/apt.conf.d/90aether-noninteractive
+mkdir -p /usr/share/aether
+{
+    echo "AetherOS build report"
+    echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo
+} > "$REPORT"
+
+apt-get update || echo "WARNING: apt-get update failed; optional packages may be skipped" | tee -a "$REPORT"
+
+# install_group <label> <package>...
+install_group() {
+    local label="$1"
+    shift
+    if apt-get install -y --no-install-recommends "$@"; then
+        echo "OK       $label: $*" >> "$REPORT"
+        return 0
+    fi
+    echo "Group '$label' failed as a whole; retrying package by package" >&2
+    local pkg
+    for pkg in "$@"; do
+        if apt-get install -y --no-install-recommends "$pkg"; then
+            echo "OK       $label: $pkg" >> "$REPORT"
+        else
+            echo "MISSING  $label: $pkg" >> "$REPORT"
+        fi
+    done
+}
+
+install_group desktop \
+    swaybg swaylock swayidle waybar fuzzel mako-notifier grim slurp wl-clipboard \
+    libnotify-bin xdg-utils xwayland polkitd pkexec
+install_group portals \
+    xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk
+install_group audio \
+    pipewire pipewire-pulse pipewire-alsa wireplumber pavucontrol
+install_group network network-manager-gnome
+install_group apps firefox-esr thunar gvfs mousepad
+install_group look \
+    fonts-inter fonts-noto-color-emoji papirus-icon-theme adwaita-icon-theme gnome-themes-extra
+install_group assistant-ui python3-gi gir1.2-gtk-4.0 gir1.2-adw-1
+install_group hardware brightnessctl
+install_group tools nano htop
+install_group installer calamares calamares-settings-debian qt6-wayland
+
+# Install AetherOS desktop configs over whatever the packages shipped.
+if [ -d /usr/share/aether/xdg-defaults ]; then
+    mkdir -p /etc/xdg
+    cp -a /usr/share/aether/xdg-defaults/. /etc/xdg/
+fi
+apt-get clean
+exit 0

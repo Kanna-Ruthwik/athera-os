@@ -1,0 +1,25 @@
+#!/bin/bash
+set -e
+
+for account in aether-ai aether-semfs aether-exec aether-llm; do
+    getent group "$account" >/dev/null || groupadd --system "$account"
+    getent passwd "$account" >/dev/null || \
+        useradd --system --gid "$account" --home-dir /nonexistent --shell /usr/sbin/nologin "$account"
+done
+getent group aether-clients >/dev/null || groupadd --system aether-clients
+
+for unit in aid.service semfsd.service execd.service aether-keygen.service; do
+    chmod 0644 "/etc/systemd/system/$unit"
+    systemctl enable "$unit"
+done
+
+mkdir -p /run/ai /var/lib/aether /var/lib/semfs /var/lib/execd
+chmod 0755 /run/ai
+chown root:aether-clients /run/ai
+chmod 0750 /var/lib/aether /var/lib/semfs /var/lib/execd
+chown root:aether-clients /var/lib/aether
+chown aether-semfs:aether-clients /var/lib/semfs
+chown aether-exec:aether-clients /var/lib/execd
+
+chmod 0755 /usr/libexec/aether
+chmod 0644 /usr/libexec/aether/*.py.txt

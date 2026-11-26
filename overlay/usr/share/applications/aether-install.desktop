@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install AetherOS (experimental)
+Comment=Install AetherOS to a disk
+Exec=aether-install
+TryExec=calamares
+Icon=system-software-install
+Terminal=false
+Categories=System;

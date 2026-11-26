@@ -1,0 +1,27 @@
+#!/bin/bash
+# Final touches: refresh caches, record service state, keep the image small.
+set -uo pipefail
+
+REPORT=/usr/share/aether/build-report.txt
+export DEBIAN_FRONTEND=noninteractive
+
+gtk-update-icon-cache -f -t /usr/share/icons/Papirus-Dark >/dev/null 2>&1 || true
+fc-cache -f >/dev/null 2>&1 || true
+update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+
+chmod 0755 /usr/bin/aetherctl /usr/bin/aether-assistant /usr/bin/aether-install 2>/dev/null || true
+
+{
+    echo
+    echo "--- final checks ---"
+    for bin in sway waybar fuzzel mako foot firefox-esr thunar calamares; do
+        if command -v "$bin" >/dev/null 2>&1; then echo "OK       binary: $bin"; else echo "MISSING  binary: $bin"; fi
+    done
+    for file in /opt/aether/llama/bin/llama-server /usr/share/aether/models/llm/model.gguf /opt/aether/venv/bin/python3; do
+        if [ -e "$file" ]; then echo "OK       file: $file"; else echo "MISSING  file: $file"; fi
+    done
+} >> "$REPORT"
+
+apt-get clean
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* 2>/dev/null || true
+exit 0

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Aether Assistant
+GenericName=Private assistant
+Comment=Your on-device assistant: files, apps, notes and chat
+Exec=aether-assistant
+Icon=help-browser
+Terminal=false
+Categories=Utility;
+Keywords=assistant;ai;aether;chat;
+StartupWMClass=os.aether.Assistant

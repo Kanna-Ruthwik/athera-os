@@ -1,0 +1,59 @@
+[Unit]
+Description=AetherOS permission-filtered semantic file indexer
+After=local-fs.target systemd-tmpfiles-setup.service
+Before=graphical.target
+
+[Service]
+Type=simple
+User=aether-semfs
+Group=aether-clients
+UMask=0077
+StateDirectory=semfs
+StateDirectoryMode=0750
+Environment=AETHER_INDEX_ROOT=/home
+Environment=AETHER_MODEL_CACHE=/usr/share/aether/models
+Environment=HF_HUB_OFFLINE=1
+Environment=TRANSFORMERS_OFFLINE=1
+ExecStart=/opt/aether/venv/bin/python3 /usr/libexec/aether/semfsd.py.txt
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=10s
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/home
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateNetwork=yes
+NoNewPrivileges=yes
+ProtectClock=yes
+ProtectKernelLogs=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RemoveIPC=yes
+RestrictRealtime=yes
+RestrictNamespaces=~user cgroup ipc mnt net pid time uts
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @cpu-emulation @debug @module @mount @obsolete @privileged @raw-io @reboot @resources @swap
+SystemCallErrorNumber=EPERM
+PrivateMounts=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+LockPersonality=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX
+MemoryHigh=512M
+MemoryMax=768M
+CPUWeight=30
+IOWeight=30
+TasksMax=24
+LimitNOFILE=512
+ReadWritePaths=/run/ai
+ReadOnlyPaths=/usr/share/aether/models
+
+[Install]
+WantedBy=multi-user.target
